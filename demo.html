@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Zeno Export Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007acc; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a9e; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zeno Export Demo</h1>
+        <p>This demo shows the zeno-export WASM module generating Excel files from normalized transaction data.</p>
+        
+        <div id="status" class="status info">Loading export module...</div>
+        
+        <h3>Normalized Transaction Data (JSON):</h3>
+        <textarea id="jsonInput" placeholder="Paste normalized JSON data here..."></textarea>
+        
+        <button id="loadSample" onclick="loadSampleData()">Load Sample Data</button>
+        <button id="generateExcel" onclick="generateExcel()" disabled>Generate Excel</button>
+        <button onclick="clearData()">Clear</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        let exportReady = false;
+
+        // Load WASM module
+        WebAssembly.instantiateStreaming(fetch("export.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+        });
+
+        // Wait for export WASM to be ready
+        window.addEventListener('exportWasmReady', () => {
+            exportReady = true;
+            document.getElementById('status').innerHTML = '✓ Export module loaded successfully';
+            document.getElementById('status').className = 'status success';
+            document.getElementById('generateExcel').disabled = false;
+            console.log('zenoExport object available:', typeof window.zenoExport);
+        });
+
+        function loadSampleData() {
+            const sampleData = {
+                "vendor": "hellenic_bank",
+                "rows": [
+                    {
+                        "bank_vendor": "hellenic_bank",
+                        "booking_date": "2024-11-01",
+                        "value_date": "2024-11-01",
+                        "amount": "2800.00",
+                        "currency": "EUR",
+                        "description": "INCOMING TRANSFER - SALARY",
+                        "raw_type": "income",
+                        "balance": "6200.00"
+                    },
+                    {
+                        "bank_vendor": "hellenic_bank",
+                        "booking_date": "2024-11-02",
+                        "value_date": "2024-11-02",
+                        "amount": "-45.50",
+                        "currency": "EUR",
+                        "description": "CARD PAYMENT - SUPERMARKET LTD",
+                        "raw_type": "card_payment",
+                        "balance": "6154.50"
+                    },
+                    {
+                        "bank_vendor": "hellenic_bank",
+                        "booking_date": "2024-11-03",
+                        "value_date": null,
+                        "amount": "-100.00",
+                        "currency": "EUR",
+                        "description": "ATM WITHDRAWAL - NICOSIA BRANCH",
+                        "raw_type": "atm_withdrawal",
+                        "balance": "6054.50"
+                    }
+                ],
+                "warnings": [
+                    {
+                        "row": 4,
+                        "message": "Missing value date"
+                    }
+                ]
+            };
+            
+            document.getElementById('jsonInput').value = JSON.stringify(sampleData, null, 2);
+        }
+
+        async function generateExcel() {
+            if (!exportReady) {
+                showResult('Export module not ready', 'error');
+                return;
+            }
+
+            const jsonData = document.getElementById('jsonInput').value.trim();
+            if (!jsonData) {
+                showResult('Please enter JSON data', 'error');
+                return;
+            }
+
+            try {
+                showResult('Generating Excel file...', 'info');
+                
+                // Parse JSON to validate
+                const parsed = JSON.parse(jsonData);
+                
+                // Generate Excel using WASM
+                const excelBytes = await window.zenoExport.toExcel(jsonData);
+                
+                // Create download
+                const blob = new Blob([excelBytes], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `transactions_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showResult(`✓ Excel file generated successfully (${excelBytes.length} bytes)`, 'success');
+                
+            } catch (error) {
+                showResult('Error: ' + (error.error || error.message || 'Unknown error'), 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function clearData() {
+            document.getElementById('jsonInput').value = '';
+            document.getElementById('result').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

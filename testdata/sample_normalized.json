@@ -1,0 +1,41 @@
+{
+  "vendor": "hellenic_bank",
+  "rows": [
+    {
+      "bank_vendor": "hellenic_bank",
+      "booking_date": "2024-11-01",
+      "value_date": "2024-11-01",
+      "amount": "2800.00",
+      "currency": "EUR",
+      "description": "INCOMING TRANSFER - SALARY",
+      "raw_type": "income",
+      "balance": "6200.00"
+    },
+    {
+      "bank_vendor": "hellenic_bank",
+      "booking_date": "2024-11-02",
+      "value_date": "2024-11-02",
+      "amount": "-45.50",
+      "currency": "EUR",
+      "description": "CARD PAYMENT - SUPERMARKET LTD",
+      "raw_type": "card_payment",
+      "balance": "6154.50"
+    },
+    {
+      "bank_vendor": "hellenic_bank",
+      "booking_date": "2024-11-03",
+      "value_date": null,
+      "amount": "-100.00",
+      "currency": "EUR",
+      "description": "ATM WITHDRAWAL - NICOSIA BRANCH",
+      "raw_type": "atm_withdrawal",
+      "balance": "6054.50"
+    }
+  ],
+  "warnings": [
+    {
+      "row": 3,
+      "message": "Missing value date"
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Zeno Engine + Export Integration Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .step h3 { margin-top: 0; }
+        textarea { width: 100%; height: 150px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007acc; color: white; border: none; cursor: pointer; }
+        button:hover { background: #005a9e; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .pipeline { display: flex; align-items: center; margin: 20px 0; }
+        .pipeline-step { padding: 10px 20px; background: #f8f9fa; border: 1px solid #dee2e6; margin: 0 10px; }
+        .pipeline-arrow { font-size: 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zeno Engine + Export Integration Demo</h1>
+        <p>Complete pipeline: CSV → Normalize → Excel</p>
+        
+        <div class="pipeline">
+            <div class="pipeline-step">Raw CSV</div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step">zeno-engine.wasm</div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step">Normalized JSON</div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step">zeno-export.wasm</div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step">Excel Download</div>
+        </div>
+        
+        <div id="engineStatus" class="status info">Loading zeno-engine...</div>
+        <div id="exportStatus" class="status info">Loading zeno-export...</div>
+        
+        <div class="step">
+            <h3>Step 1: Raw CSV Input</h3>
+            <textarea id="csvInput" placeholder="Paste CSV data here..."></textarea>
+            <button onclick="loadHellenicSample()">Load Hellenic Sample</button>
+            <button onclick="loadBoCSample()">Load BoC Sample</button>
+            <button onclick="load1BankSample()">Load 1Bank Sample</button>
+        </div>
+        
+        <div class="step">
+            <h3>Step 2: Normalize CSV</h3>
+            <button id="normalizeBtn" onclick="normalizeCSV()" disabled>Normalize CSV</button>
+            <div id="normalizeResult"></div>
+            <textarea id="normalizedJson" readonly placeholder="Normalized JSON will appear here..."></textarea>
+        </div>
+        
+        <div class="step">
+            <h3>Step 3: Generate Excel</h3>
+            <button id="exportBtn" onclick="exportToExcel()" disabled>Generate & Download Excel</button>
+            <div id="exportResult"></div>
+        </div>
+    </div>
+
+    <!-- Load both WASM modules -->
+    <script id="engine-wasm-exec"></script>
+    <script src="wasm_exec.js"></script>
+    <script>
+        let engineReady = false;
+        let exportReady = false;
+        let normalizedData = null;
+
+        // Load engine wasm_exec.js dynamically
+        fetch('../zeno-engine/wasm_exec.js')
+            .then(response => response.text())
+            .then(script => {
+                document.getElementById('engine-wasm-exec').innerHTML = script;
+                
+                // Load zeno-engine WASM
+                const engineGo = new Go();
+                WebAssembly.instantiateStreaming(fetch("../zeno-engine/zeno-engine.wasm"), engineGo.importObject)
+                    .then((result) => {
+                        engineGo.run(result.instance);
+                    })
+                    .catch(err => {
+                        console.error('Failed to load zeno-engine:', err);
+                        document.getElementById('engineStatus').innerHTML = '❌ Failed to load zeno-engine';
+                        document.getElementById('engineStatus').className = 'status error';
+                    });
+            })
+            .catch(err => {
+                console.error('Failed to load engine wasm_exec.js:', err);
+                document.getElementById('engineStatus').innerHTML = '❌ Failed to load engine wasm_exec.js';
+                document.getElementById('engineStatus').className = 'status error';
+            });
+
+        // Load zeno-export WASM  
+        const exportGo = new Go();
+        WebAssembly.instantiateStreaming(fetch("export.wasm"), exportGo.importObject)
+            .then((result) => {
+                exportGo.run(result.instance);
+            })
+            .catch(err => {
+                console.error('Failed to load zeno-export:', err);
+                document.getElementById('exportStatus').innerHTML = '❌ Failed to load zeno-export';
+                document.getElementById('exportStatus').className = 'status error';
+            });
+
+        // Engine ready
+        window.addEventListener('wasmReady', () => {
+            engineReady = true;
+            document.getElementById('engineStatus').innerHTML = '✓ zeno-engine loaded';
+            document.getElementById('engineStatus').className = 'status success';
+            document.getElementById('normalizeBtn').disabled = false;
+        });
+
+        // Export ready
+        window.addEventListener('exportWasmReady', () => {
+            exportReady = true;
+            document.getElementById('exportStatus').innerHTML = '✓ zeno-export loaded';
+            document.getElementById('exportStatus').className = 'status success';
+            updateExportButton();
+        });
+
+        function updateExportButton() {
+            document.getElementById('exportBtn').disabled = !(exportReady && normalizedData);
+        }
+
+        function loadHellenicSample() {
+            document.getElementById('csvInput').value = `Transaction Date,Value Date,Description,Debit Amount,Credit Amount,Balance
+2024-11-01,2024-11-01,INCOMING TRANSFER - SALARY,,2800.00,6200.00
+2024-11-02,2024-11-02,CARD PAYMENT - SUPERMARKET LTD,45.50,,6154.50
+2024-11-03,2024-11-03,ATM WITHDRAWAL - NICOSIA BRANCH,100.00,,6054.50`;\n        }\n\n        function loadBoCSample() {\n            document.getElementById('csvInput').value = `Period:,Previous Month,,,,,,,,\nAccount number:,357002101234567,,,,,,,,\nDate,Description,Transaction type,Reference number,Debit,Credit,Indicative balance,Value date,Bank reference number,Branch code\n30/09/2024,Maintenance Fees,Commission - Fee,,5.00,,995.00,30/09/2024,,105\n23/09/2024,Transfer Payment,BOC Transfer,260571481,100.50,,894.50,23/09/2024,,195`;\n        }\n\n        function load1BankSample() {\n            document.getElementById('csvInput').value = `Date,Time,Reference,Description,Debit (EUR),Credit (EUR),Balance (EUR)\n01.11.2024,09:15:23,TXN001,INCOMING TRANSFER - SALARY,,2800.00,6200.00\n02.11.2024,14:30:45,TXN002,CARD PAYMENT - SUPERMARKET LTD,45.50,,6154.50`;\n        }\n\n        async function normalizeCSV() {\n            if (!engineReady) {\n                showResult('normalizeResult', 'Engine not ready', 'error');\n                return;\n            }\n\n            const csvData = document.getElementById('csvInput').value.trim();\n            if (!csvData) {\n                showResult('normalizeResult', 'Please enter CSV data', 'error');\n                return;\n            }\n\n            try {\n                showResult('normalizeResult', 'Normalizing CSV...', 'info');\n                \n                const result = await window.zenoEngine.normalizeCSV(csvData, '{}');\n                \n                normalizedData = result;\n                document.getElementById('normalizedJson').value = JSON.stringify(result, null, 2);\n                \n                showResult('normalizeResult', \n                    `✓ Normalized successfully: ${result.vendor} bank, ${result.rows.length} transactions, ${result.warnings.length} warnings`, \n                    'success');\n                \n                updateExportButton();\n                \n            } catch (error) {\n                showResult('normalizeResult', 'Error: ' + (error.error || error.message), 'error');\n            }\n        }\n\n        async function exportToExcel() {\n            if (!exportReady || !normalizedData) {\n                showResult('exportResult', 'Export not ready or no normalized data', 'error');\n                return;\n            }\n\n            try {\n                showResult('exportResult', 'Generating Excel file...', 'info');\n                \n                const excelBytes = await window.zenoExport.toExcel(JSON.stringify(normalizedData));\n                \n                // Create download\n                const blob = new Blob([excelBytes], { \n                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' \n                });\n                \n                const url = URL.createObjectURL(blob);\n                const a = document.createElement('a');\n                a.href = url;\n                a.download = `${normalizedData.vendor}_transactions_${new Date().toISOString().split('T')[0]}.xlsx`;\n                document.body.appendChild(a);\n                a.click();\n                document.body.removeChild(a);\n                URL.revokeObjectURL(url);\n                \n                showResult('exportResult', \n                    `✓ Excel file generated and downloaded (${excelBytes.length} bytes)`, \n                    'success');\n                \n            } catch (error) {\n                showResult('exportResult', 'Error: ' + (error.error || error.message), 'error');\n            }\n        }\n\n        function showResult(elementId, message, type) {\n            const element = document.getElementById(elementId);\n            element.innerHTML = `<div class=\"status ${type}\">${message}</div>`;\n        }\n    </script>\n</body>\n</html>

@@ -3,15 +3,15 @@
 package main
 
 import (
-	"syscall/js"
-
 	"github.com/ZenoN-Cloud/zeno-export/internal/appexport"
 )
 
 func main() {
+	c := make(chan struct{}, 0)
+
+	// Initialize export app and register WASM functions
 	app := appexport.New()
 	app.RegisterWASMFunctions()
 
-	// keep WASM running
-	select {}
+	<-c
 }
