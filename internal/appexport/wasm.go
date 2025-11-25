@@ -24,10 +24,18 @@ func (a *App) RegisterWASMFunctions() {
 }
 
 func (a *App) toExcelWrapper(this js.Value, args []js.Value) interface{} {
+	// Capture outer arguments
+	if len(args) < 1 {
+		return js.ValueOf(map[string]interface{}{
+			"error": "missing normalized data argument",
+		})
+	}
+	normalizedJSON := args[0].String()
+
 	// Return a Promise
-	handler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		resolve := args[0]
-		reject := args[1]
+	handler := js.FuncOf(func(this js.Value, promiseArgs []js.Value) interface{} {
+		resolve := promiseArgs[0]
+		reject := promiseArgs[1]
 
 		go func() {
 			defer func() {
@@ -38,16 +46,9 @@ func (a *App) toExcelWrapper(this js.Value, args []js.Value) interface{} {
 				}
 			}()
 
-			if len(args) < 3 {
-				reject.Invoke(js.ValueOf(map[string]interface{}{
-					"error": "missing normalized data argument",
-				}))
-				return
-			}
-
 			// Parse normalized data
 			var normalized map[string]interface{}
-			if err := json.Unmarshal([]byte(args[2].String()), &normalized); err != nil {
+			if err := json.Unmarshal([]byte(normalizedJSON), &normalized); err != nil {
 				reject.Invoke(js.ValueOf(map[string]interface{}{
 					"error": "failed to parse normalized data: " + err.Error(),
 				}))
