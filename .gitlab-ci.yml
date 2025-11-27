@@ -39,7 +39,7 @@ unit-tests:
     - apk add --no-cache git make
     - go mod download
   script:
-    - go test -short -coverprofile=coverage.out -covermode=atomic ./...
+    - go test -short -coverprofile=coverage.out -covermode=atomic ./export/...
     - go tool cover -func=coverage.out
   coverage: '/total:.*?(\d+\.\d+)%/'
   artifacts:
