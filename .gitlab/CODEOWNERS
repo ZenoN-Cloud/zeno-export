@@ -1,0 +1,14 @@
+# GitLab Code Owners
+
+* @maximviazov
+
+# CI/CD
+/.gitlab-ci.yml @maximviazov
+/.gitlab/ @maximviazov
+
+# Core export
+/export/ @maximviazov
+/cmd/ @maximviazov
+
+# Documentation
+README.md @maximviazov

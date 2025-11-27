@@ -4,6 +4,9 @@ GO-WASM Export Engine for Zeno CY
 Local Excel generation from normalized transactions.  
 Runs fully in the browser. Zero-retention. No server-side processing.
 
+[![Pipeline](https://gitlab.com/zeno-cy/zeno-export/badges/main/pipeline.svg)](https://gitlab.com/zeno-cy/zeno-export/-/pipelines)
+[![Coverage](https://gitlab.com/zeno-cy/zeno-export/badges/main/coverage.svg)](https://gitlab.com/zeno-cy/zeno-export/-/commits/main)
+
 ---
 
 ## 1. Mission
