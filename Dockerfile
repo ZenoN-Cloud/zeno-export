@@ -13,5 +13,6 @@ COPY --from=builder /app/export.wasm /usr/share/nginx/html/
 COPY --from=builder /app/wasm_exec.js /usr/share/nginx/html/
 COPY --from=builder /app/demo.html /usr/share/nginx/html/index.html
 COPY --from=builder /app/integration-demo.html /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
